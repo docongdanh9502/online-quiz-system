@@ -2,6 +2,8 @@ import express from 'express';
 import dotenv from 'dotenv';
 import connectDB from './config/database';
 import authRoutes from './routes/authRoutes';
+import adminRoutes from './routes/adminRoutes';
+import teacherRoutes from './routes/teacherRoutes';
 
 dotenv.config();
 
@@ -14,6 +16,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use('/api/auth', authRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/teacher', teacherRoutes);
 
 app.get('/', (req, res) => {
   res.json({ message: 'Online Quiz System API' });
@@ -22,4 +26,3 @@ app.get('/', (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server đang chạy tại port ${PORT}`);
 });
-

@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import User from '../models/User';
 import { generateToken } from '../config/jwt';
+import { AuthRequest } from '../middleware/auth';
 
 export const register = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -88,6 +89,29 @@ export const login = async (req: Request, res: Response): Promise<void> => {
         email: user.email,
         name: user.name,
         role: user.role,
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({ message: 'Lỗi server', error: error.message });
+  }
+};
+
+export const getProfile = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const user = await User.findById(req.user?.userId).select('-password');
+    
+    if (!user) {
+      res.status(404).json({ message: 'Người dùng không tồn tại' });
+      return;
+    }
+    
+    res.status(200).json({
+      user: {
+        id: user._id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        avatar: user.avatar,
       },
     });
   } catch (error: any) {

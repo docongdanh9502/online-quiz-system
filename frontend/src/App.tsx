@@ -8,6 +8,7 @@ import Register from './pages/Register';
 import Unauthorized from './pages/Unauthorized';
 import Profile from './pages/Profile';
 import Questions from './pages/Questions';
+import QuizTaking from './pages/QuizTaking';
 
 // ... (giữ nguyên các components khác)
 
@@ -146,3 +147,25 @@ import QuizForm from './pages/QuizForm';
     </ProtectedRoute>
   }
 />
+
+<Route
+  path="/quiz/:quizId/take"
+  element={
+    <ProtectedRoute>
+      <Layout>
+        <QuizTaking />
+      </Layout>
+    </ProtectedRoute>
+  }
+/>
+<Route
+  path="/assignment/:assignmentId/quiz/:quizId/take"
+  element={
+    <ProtectedRoute>
+      <Layout>
+        <QuizTaking />
+      </Layout>
+    </ProtectedRoute>
+  }
+/>
+

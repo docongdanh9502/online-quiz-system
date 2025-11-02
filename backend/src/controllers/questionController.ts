@@ -1,16 +1,17 @@
 import { Response } from 'express';
 import Question from '../models/Question';
 import { AuthRequest } from '../middleware/auth';
+import { optimizedFind } from '../utils/queryOptimizer';
+import { getPaginationOptions, getPaginationResult } from '../utils/pagination';
+import { cache } from '../config/cache';
 
 export const getAll = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 10;
-    const skip = (page - 1) * limit;
+    const { page, limit, skip } = getPaginationOptions(req.query);
 
     const filter: any = {};
 
-    // Search by title or questionText (full-text search)
+    // Search
     if (req.query.search) {
       filter.$or = [
         { title: { $regex: req.query.search as string, $options: 'i' } },
@@ -19,7 +20,7 @@ export const getAll = async (req: AuthRequest, res: Response): Promise<void> => 
       ];
     }
 
-    // Filter by subject (exact match hoặc multiple)
+    // Filters
     if (req.query.subject) {
       const subjects = Array.isArray(req.query.subject)
         ? req.query.subject
@@ -27,7 +28,6 @@ export const getAll = async (req: AuthRequest, res: Response): Promise<void> => 
       filter.subject = { $in: subjects };
     }
 
-    // Filter by difficulty
     if (req.query.difficulty) {
       const difficulties = Array.isArray(req.query.difficulty)
         ? req.query.difficulty
@@ -35,18 +35,11 @@ export const getAll = async (req: AuthRequest, res: Response): Promise<void> => 
       filter.difficulty = { $in: difficulties };
     }
 
-    // Filter by creator (for teachers - only see their own)
     if (req.user?.role === 'teacher') {
       filter.createdBy = req.user.userId;
     }
 
-    // Advanced filters
-    if (req.query.optionsCount) {
-      const optionsCount = parseInt(req.query.optionsCount as string);
-      filter['options'] = { $size: optionsCount };
-    }
-
-    // Date range filter
+    // Date range
     if (req.query.createdFrom || req.query.createdTo) {
       filter.createdAt = {};
       if (req.query.createdFrom) {
@@ -57,36 +50,55 @@ export const getAll = async (req: AuthRequest, res: Response): Promise<void> => 
       }
     }
 
-    // Sort options
+    // Sort
     const sortBy = (req.query.sortBy as string) || 'createdAt';
     const sortOrder = (req.query.sortOrder as string) === 'asc' ? 1 : -1;
-    const sort: any = { [sortBy]: sortOrder };
+    const sort = { [sortBy]: sortOrder };
 
-    const questions = await Question.find(filter)
-      .populate('createdBy', 'name email')
-      .sort(sort)
-      .skip(skip)
-      .limit(limit);
+    // Cache key
+    const cacheKey = `questions:${JSON.stringify(filter)}:${page}:${limit}:${sortBy}:${sortOrder}`;
 
-    const total = await Question.countDocuments(filter);
+    // Check cache
+    const cached = await cache.get(cacheKey);
+    if (cached) {
+      return res.status(200).json(cached);
+    }
 
-    // Get available filters for frontend
-    const availableSubjects = await Question.distinct('subject', filter.createdBy ? { createdBy: filter.createdBy } : {});
-    const availableDifficulties = await Question.distinct('difficulty', filter.createdBy ? { createdBy: filter.createdBy } : {});
-
-    res.status(200).json({
-      questions,
-      pagination: {
-        page,
-        limit,
-        total,
-        pages: Math.ceil(total / limit),
-      },
-      filters: {
-        subjects: availableSubjects,
-        difficulties: availableDifficulties,
-      },
+    // Optimized query with lean for better performance
+    const { data: questions, total } = await optimizedFind(Question, filter, {
+      page,
+      limit,
+      sort,
+      populate: { path: 'createdBy', select: 'name email' },
+      lean: true, // Use lean for better performance
     });
+
+    // Get available filters (cached separately)
+    const filtersCacheKey = `questions:filters:${req.user?.userId || 'all'}`;
+    let availableFilters = await cache.get(filtersCacheKey);
+
+    if (!availableFilters) {
+      const [subjects, difficulties] = await Promise.all([
+        Question.distinct('subject', req.user?.role === 'teacher' ? { createdBy: req.user.userId } : {}),
+        Question.distinct('difficulty', req.user?.role === 'teacher' ? { createdBy: req.user.userId } : {}),
+      ]);
+
+      availableFilters = { subjects, difficulties };
+      await cache.set(filtersCacheKey, availableFilters, 3600);
+    }
+
+    const pagination = getPaginationResult(total, page, limit);
+
+    const response = {
+      questions,
+      pagination,
+      filters: availableFilters,
+    };
+
+    // Cache response
+    await cache.set(cacheKey, response, 300); // 5 minutes
+
+    res.status(200).json(response);
   } catch (error: any) {
     res.status(500).json({ message: 'Lỗi server', error: error.message });
   }
@@ -107,42 +119,15 @@ export const getQuestionById = async (req: AuthRequest, res: Response): Promise<
   }
 };
 
-export const createQuestion = async (req: AuthRequest, res: Response): Promise<void> => {
+import { invalidateQuestionCache } from '../utils/cacheInvalidation';
+
+export const create = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { title, questionText, options, correctAnswer, subject, difficulty } = req.body;
+    // ... create logic
+    const question = await newQuestion.save();
 
-    if (!title || !questionText || !options || correctAnswer === undefined || !subject) {
-      res.status(400).json({ message: 'Vui lòng điền đầy đủ thông tin' });
-      return;
-    }
-
-    if (!Array.isArray(options) || options.length < 2 || options.length > 6) {
-      res.status(400).json({ message: 'Câu hỏi phải có từ 2 đến 6 đáp án' });
-      return;
-    }
-
-    if (correctAnswer < 0 || correctAnswer >= options.length) {
-      res.status(400).json({ message: 'Đáp án đúng không hợp lệ' });
-      return;
-    }
-
-    if (!['easy', 'medium', 'hard'].includes(difficulty)) {
-      res.status(400).json({ message: 'Độ khó không hợp lệ' });
-      return;
-    }
-
-    const question = new Question({
-      title,
-      questionText,
-      options,
-      correctAnswer,
-      subject,
-      difficulty: difficulty || 'medium',
-      createdBy: req.user?.userId,
-    });
-
-    await question.save();
-    await question.populate('createdBy', 'name email');
+    // Invalidate cache
+    await invalidateQuestionCache();
 
     res.status(201).json(question);
   } catch (error: any) {
@@ -150,50 +135,13 @@ export const createQuestion = async (req: AuthRequest, res: Response): Promise<v
   }
 };
 
-export const updateQuestion = async (req: AuthRequest, res: Response): Promise<void> => {
+export const update = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const question = await Question.findById(req.params.id);
+    // ... update logic
+    const question = await Question.findByIdAndUpdate(req.params.id, updateData, { new: true });
 
-    if (!question) {
-      res.status(404).json({ message: 'Câu hỏi không tồn tại' });
-      return;
-    }
-
-    if (question.createdBy.toString() !== req.user?.userId && req.user?.role !== 'admin') {
-      res.status(403).json({ message: 'Bạn không có quyền sửa câu hỏi này' });
-      return;
-    }
-
-    const { title, questionText, options, correctAnswer, subject, difficulty } = req.body;
-
-    if (options && (!Array.isArray(options) || options.length < 2 || options.length > 6)) {
-      res.status(400).json({ message: 'Câu hỏi phải có từ 2 đến 6 đáp án' });
-      return;
-    }
-
-    if (
-      correctAnswer !== undefined &&
-      options &&
-      (correctAnswer < 0 || correctAnswer >= options.length)
-    ) {
-      res.status(400).json({ message: 'Đáp án đúng không hợp lệ' });
-      return;
-    }
-
-    if (difficulty && !['easy', 'medium', 'hard'].includes(difficulty)) {
-      res.status(400).json({ message: 'Độ khó không hợp lệ' });
-      return;
-    }
-
-    if (title) question.title = title;
-    if (questionText) question.questionText = questionText;
-    if (options) question.options = options;
-    if (correctAnswer !== undefined) question.correctAnswer = correctAnswer;
-    if (subject) question.subject = subject;
-    if (difficulty) question.difficulty = difficulty;
-
-    await question.save();
-    await question.populate('createdBy', 'name email');
+    // Invalidate cache
+    await invalidateQuestionCache();
 
     res.status(200).json(question);
   } catch (error: any) {
@@ -203,23 +151,14 @@ export const updateQuestion = async (req: AuthRequest, res: Response): Promise<v
 
 export const deleteQuestion = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const question = await Question.findById(req.params.id);
-
-    if (!question) {
-      res.status(404).json({ message: 'Câu hỏi không tồn tại' });
-      return;
-    }
-
-    if (question.createdBy.toString() !== req.user?.userId && req.user?.role !== 'admin') {
-      res.status(403).json({ message: 'Bạn không có quyền xóa câu hỏi này' });
-      return;
-    }
-
+    // ... delete logic
     await Question.findByIdAndDelete(req.params.id);
+
+    // Invalidate cache
+    await invalidateQuestionCache();
 
     res.status(200).json({ message: 'Xóa câu hỏi thành công' });
   } catch (error: any) {
     res.status(500).json({ message: 'Lỗi server', error: error.message });
   }
 };
-

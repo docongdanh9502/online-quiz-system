@@ -12,6 +12,13 @@ import quizResultRoutes from './routes/quizResultRoutes';
 import analyticsRoutes from './routes/analyticsRoutes';
 import uploadRoutes from './routes/uploadRoutes';
 import searchRoutes from './routes/searchRoutes';
+import connectDB from './config/database';
+import { initRedis } from './config/cache';
+import { optimizeIndexes } from './models/indexOptimization';
+
+// Initialize Redis
+initRedis();
+
 
 dotenv.config();
 

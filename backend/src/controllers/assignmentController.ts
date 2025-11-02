@@ -211,3 +211,16 @@ export const getAssignmentsByStudent = async (req: AuthRequest, res: Response): 
     res.status(500).json({ message: 'Lỗi server', error: error.message });
   }
 };
+import { notificationService } from '../services/notificationService';
+
+// Trong hàm create, sau khi tạo assignment thành công:
+const assignment = await newAssignment.save();
+
+// Gửi email notification
+try {
+  await notificationService.sendAssignmentCreated(assignment._id.toString());
+} catch (error) {
+  console.error('Lỗi gửi email:', error);
+}
+
+res.status(201).json(assignment);

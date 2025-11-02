@@ -36,3 +36,11 @@ app.get('/', (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server đang chạy tại port ${PORT}`);
 });
+import { startReminderJob } from './jobs/reminderJob';
+
+// Sau khi connectDB()
+connectDB();
+
+// Start reminder job
+startReminderJob();
+

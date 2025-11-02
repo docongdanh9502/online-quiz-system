@@ -268,3 +268,19 @@ export const getMyResults = async (req: AuthRequest, res: Response): Promise<voi
     res.status(500).json({ message: 'Lỗi server', error: error.message });
   }
 };  
+import { notificationService } from '../services/notificationService';
+
+// Trong hàm submitQuiz, sau khi submit thành công:
+await quizResult.save();
+
+// Gửi email notification
+try {
+  await notificationService.sendQuizSubmitted(quizResult._id.toString());
+} catch (error) {
+  console.error('Lỗi gửi email:', error);
+}
+
+res.status(200).json({
+  message: 'Nộp bài thành công',
+  quizResult,
+});

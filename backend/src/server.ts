@@ -6,6 +6,7 @@ import adminRoutes from './routes/adminRoutes';
 import teacherRoutes from './routes/teacherRoutes';
 import questionRoutes from './routes/questionRoutes';
 
+
 dotenv.config();
 
 const app = express();
@@ -28,3 +29,4 @@ app.get('/', (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server đang chạy tại port ${PORT}`);
 });
+

@@ -350,5 +350,5 @@ const Questions: React.FC = () => {
     </Layout>
   );
 };
-
+onClick={() => navigate(`/questions/edit/${question._id}`)}
 export default Questions;

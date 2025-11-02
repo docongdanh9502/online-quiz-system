@@ -5,7 +5,7 @@ import authRoutes from './routes/authRoutes';
 import adminRoutes from './routes/adminRoutes';
 import teacherRoutes from './routes/teacherRoutes';
 import questionRoutes from './routes/questionRoutes';
-import quizRoutes from './routes/quizRoutes';
+
 
 dotenv.config();
 
@@ -21,7 +21,6 @@ app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/teacher', teacherRoutes);
 app.use('/api/questions', questionRoutes);
-app.use('/api/quizzes', quizRoutes);
 
 app.get('/', (req, res) => {
   res.json({ message: 'Online Quiz System API' });

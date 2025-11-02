@@ -85,5 +85,64 @@ export const authAPI = {
   login: (data: { email: string; password: string }) =>
     api.post('/auth/login', data),
 };
+import Quizzes from './pages/Quizzes';
+
+// ... (trong Routes)
+<Route
+  path="/quizzes"
+  element={
+    <ProtectedRoute>
+      <Quizzes />
+    </ProtectedRoute>
+  }
+/>
+
 
 export default api;
+import QuestionForm from './pages/QuestionForm';
+
+// ... (trong Routes)
+<Route
+  path="/questions"
+  element={
+    <ProtectedRoute>
+      <Questions />
+    </ProtectedRoute>
+  }
+/>
+<Route
+  path="/questions/create"
+  element={
+    <ProtectedRoute allowedRoles={['teacher', 'admin']}>
+      <QuestionForm />
+    </ProtectedRoute>
+  }
+/>
+<Route
+  path="/questions/edit/:id"
+  element={
+    <ProtectedRoute allowedRoles={['teacher', 'admin']}>
+      <QuestionForm />
+    </ProtectedRoute>
+  }
+/>
+
+import QuizForm from './pages/QuizForm';
+
+// ... (trong Routes)
+<Route
+  path="/quizzes/create"
+  element={
+    <ProtectedRoute allowedRoles={['teacher', 'admin']}>
+      <QuizForm />
+    </ProtectedRoute>
+  }
+/>
+<Route
+  path="/quizzes/edit/:id"
+  element={
+    <ProtectedRoute allowedRoles={['teacher', 'admin']}>
+      <QuizForm />
+    </ProtectedRoute>
+  }
+/>

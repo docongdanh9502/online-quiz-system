@@ -214,6 +214,32 @@ import SettingsIcon from '@mui/icons-material/Settings';
   <ListItemText primary="Cài đặt thông báo" />
 </ListItem>
 
+import { Avatar } from '@mui/material';
+import { useAuth } from '../contexts/AuthContext';
+
+const Layout: React.FC = () => {
+  const { user } = useAuth();
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+
+  const getAvatarUrl = (avatar?: string) => {
+    if (!avatar) return '';
+    if (avatar.startsWith('http')) return avatar;
+    return `${API_URL}${avatar}`;
+  };
+
+  // Trong ProfileMenu
+  <MenuItem onClick={handleProfileClick}>
+    <ListItemIcon>
+      <Avatar
+        src={getAvatarUrl(user?.avatar)}
+        sx={{ width: 32, height: 32 }}
+      >
+        {user?.name?.[0]?.toUpperCase()}
+      </Avatar>
+    </ListItemIcon>
+    <ListItemText primary={user?.name} secondary={user?.email} />
+  </MenuItem>
+
 
 
 export default Layout;

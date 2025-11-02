@@ -198,6 +198,19 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   );
 };
 
+import GlobalSearch from './GlobalSearch';
+import SearchIcon from '@mui/icons-material/Search';
+
+// Thêm state
+const [searchOpen, setSearchOpen] = useState(false);
+
+// Thêm button vào AppBar (trước NotificationBell)
+<IconButton onClick={() => setSearchOpen(true)} color="inherit">
+  <SearchIcon />
+</IconButton>
+
+<GlobalSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
+  
 import NotificationBell from './NotificationBell';
 
 // Trong AppBar, thêm NotificationBell trước ProfileMenu
@@ -213,6 +226,8 @@ import SettingsIcon from '@mui/icons-material/Settings';
   </ListItemIcon>
   <ListItemText primary="Cài đặt thông báo" />
 </ListItem>
+
+
 
 import { Avatar } from '@mui/material';
 import { useAuth } from '../contexts/AuthContext';

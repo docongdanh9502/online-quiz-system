@@ -134,9 +134,6 @@ const MyAssignments: React.FC = () => {
   );
 };
 
-export default MyAssignments;
-
-Thêm route vào App.tsx:
 
 import MyAssignments from './pages/MyAssignments';
 
@@ -150,3 +147,85 @@ import MyAssignments from './pages/MyAssignments';
     </ProtectedRoute>
   }
 />
+
+const [advancedFilters, setAdvancedFilters] = useState({
+  subjects: [] as string[],
+  sortBy: 'createdAt',
+  sortOrder: 'desc' as 'asc' | 'desc',
+  createdFrom: null as Date | null,
+  createdTo: null as Date | null,
+  timeLimitMin: undefined as number | undefined,
+  timeLimitMax: undefined as number | undefined,
+});
+
+const fetchQuizzes = async () => {
+  setLoading(true);
+  try {
+    const params: any = {
+      page,
+      limit: 10,
+    };
+
+    if (searchTerm) {
+      params.search = searchTerm;
+    }
+
+    if (selectedSubject) {
+      params.subject = selectedSubject;
+    }
+
+    // Advanced filters
+    if (advancedFilters.subjects.length > 0) {
+      params.subject = advancedFilters.subjects;
+    }
+
+    params.sortBy = advancedFilters.sortBy;
+    params.sortOrder = advancedFilters.sortOrder;
+
+    if (advancedFilters.createdFrom) {
+      params.createdFrom = advancedFilters.createdFrom.toISOString();
+    }
+
+    if (advancedFilters.createdTo) {
+      params.createdTo = advancedFilters.createdTo.toISOString();
+    }
+
+    if (advancedFilters.timeLimitMin) {
+      params.timeLimitMin = advancedFilters.timeLimitMin;
+    }
+
+    if (advancedFilters.timeLimitMax) {
+      params.timeLimitMax = advancedFilters.timeLimitMax;
+    }
+
+    const response = await quizAPI.getAll(params);
+    setQuizzes(response.quizzes || []);
+    setPagination(response.pagination);
+    setAvailableFilters(response.filters || {});
+  } catch (error) {
+    console.error('Lỗi khi tải quizzes:', error);
+  } finally {
+    setLoading(false);
+  }
+};
+
+// Thêm component vào UI
+<AdvancedFilters
+  filters={{
+    subjects: (availableFilters.subjects || []).map((s: string) => ({
+      value: s,
+      label: s,
+    })),
+    sortBy: [
+      { value: 'createdAt', label: 'Ngày tạo' },
+      { value: 'title', label: 'Tiêu đề' },
+      { value: 'subject', label: 'Môn học' },
+      { value: 'timeLimit', label: 'Thời gian' },
+    ],
+  }}
+  selectedFilters={advancedFilters}
+  onFilterChange={handleAdvancedFilterChange}
+  onReset={handleResetFilters}
+/>
+
+export default MyAssignments;

@@ -33,24 +33,86 @@ import {
   Visibility as VisibilityIcon,
   Search as SearchIcon,
 } from '@mui/icons-material';
+
 import { useNavigate } from 'react-router-dom';
 import { questionAPI, Question } from '../services/questionAPI';
 import Layout from '../components/Layout';
 import RoleGuard from '../components/RoleGuard';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import MemoizedTable from '../components/MemoizedTable';
 
 const Questions: React.FC = () => {
-  const navigate = useNavigate();
-  const [questions, setQuestions] = useState<Question[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [page, setPage] = useState(0);
-  const [limit, setLimit] = useState(10);
-  const [total, setTotal] = useState(0);
-  const [search, setSearch] = useState('');
-  const [filterSubject, setFilterSubject] = useState('');
-  const [filterDifficulty, setFilterDifficulty] = useState('');
-  const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(null);
-  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [questions, setQuestions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedSubject, setSelectedSubject] = useState('');
+  const [selectedDifficulty, setSelectedDifficulty] = useState('');
+  const [page, setPage] = useState(1);
+
+  // Memoize filtered questions
+  const filteredQuestions = useMemo(() => {
+    return questions.filter((q) => {
+      const matchesSearch =
+        !searchTerm ||
+        q.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        q.questionText.toLowerCase().includes(searchTerm.toLowerCase());
+
+      const matchesSubject = !selectedSubject || q.subject === selectedSubject;
+      const matchesDifficulty =
+        !selectedDifficulty || q.difficulty === selectedDifficulty;
+
+      return matchesSearch && matchesSubject && matchesDifficulty;
+    });
+  }, [questions, searchTerm, selectedSubject, selectedDifficulty]);
+
+  // Memoize table columns
+  const columns = useMemo(
+    () => [
+      { id: 'title', label: 'Tiêu đề', minWidth: 200 },
+      { id: 'subject', label: 'Môn học', minWidth: 100 },
+      { id: 'difficulty', label: 'Độ khó', minWidth: 100 },
+      { id: 'actions', label: 'Hành động', minWidth: 150 },
+    ],
+    []
+  );
+
+  // Memoize row render function
+  const renderRow = useCallback(
+    (question: any) => (
+      <TableRow key={question._id}>
+        <TableCell>{question.title}</TableCell>
+        <TableCell>{question.subject}</TableCell>
+        <TableCell>{question.difficulty}</TableCell>
+        <TableCell>
+          {/* Actions */}
+        </TableCell>
+      </TableRow>
+    ),
+    []
+  );
+
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      // Trigger search after user stops typing
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  return (
+    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+      {/* Search and filters */}
+      
+      <MemoizedTable
+        columns={columns}
+        rows={filteredQuestions}
+        renderRow={renderRow}
+      />
+    </Container>
+  );
+};
+
 
   const fetchQuestions = async () => {
     setLoading(true);

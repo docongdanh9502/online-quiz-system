@@ -146,3 +146,27 @@ import QuizForm from './pages/QuizForm';
     </ProtectedRoute>
   }
 />
+
+import StudentResults from './pages/StudentResults';
+import TeacherAnalytics from './pages/TeacherAnalytics';
+
+<Route
+  path="/my-results"
+  element={
+    <ProtectedRoute>
+      <Layout>
+        <StudentResults />
+      </Layout>
+    </ProtectedRoute>
+  }
+/>
+<Route
+  path="/teacher/analytics"
+  element={
+    <ProtectedRoute allowedRoles={['teacher', 'admin']}>
+      <Layout>
+        <TeacherAnalytics />
+      </Layout>
+    </ProtectedRoute>
+  }
+/>

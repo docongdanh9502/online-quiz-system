@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import AssessmentIcon from '@mui/icons-material/Assessment';
+import BarChartIcon from '@mui/icons-material/BarChart';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   AppBar,
@@ -116,6 +118,23 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                   <AccountCircle fontSize="small" />
                 </ListItemIcon>
                 <ListItemText>Hồ sơ</ListItemText>
+                <RoleGuard allowedRoles={['student']}>
+                  <ListItem button onClick={() => navigate('/my-results')}>
+                    <ListItemIcon>
+                      <AssessmentIcon />
+                    </ListItemIcon>
+                    <ListItemText primary="Kết quả của tôi" />
+                  </ListItem>
+                </RoleGuard>
+
+                <RoleGuard allowedRoles={['teacher', 'admin']}>
+                  <ListItem button onClick={() => navigate('/teacher/analytics')}>
+                    <ListItemIcon>
+                      <BarChartIcon />
+                    </ListItemIcon>
+                    <ListItemText primary="Thống kê" />
+                  </ListItem>
+                </RoleGuard>
               </MenuItem>
               <Divider />
               <MenuItem onClick={handleLogout}>

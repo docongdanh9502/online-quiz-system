@@ -55,53 +55,100 @@ export const createAssignment = async (req: AuthRequest, res: Response): Promise
   }
 };
 
-export const getAllAssignments = async (req: AuthRequest, res: Response): Promise<void> => {
-  try {
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 10;
-    const skip = (page - 1) * limit;
-
-    const filter: any = {};
-
-    if (req.query.studentId) {
-      filter.assignedTo = req.query.studentId;
+export const getAll = async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
+      const skip = (page - 1) * limit;
+  
+      const filter: any = {};
+  
+      // For students: only see their own assignments
+      if (req.user?.role === 'student') {
+        filter.assignedTo = req.user.userId;
+      }
+  
+      // For teachers/admins: filter by assignedTo if provided
+      if (req.user?.role !== 'student' && req.query.studentId) {
+        filter.assignedTo = req.query.studentId;
+      }
+  
+      // Filter by quiz
+      if (req.query.quizId) {
+        filter.quiz = req.query.quizId;
+      }
+  
+      // Filter by status
+      if (req.query.status) {
+        const statuses = Array.isArray(req.query.status)
+          ? req.query.status
+          : [req.query.status];
+        filter.status = { $in: statuses };
+      }
+  
+      // Filter by due date range
+      if (req.query.dueFrom || req.query.dueTo) {
+        filter.dueDate = {};
+        if (req.query.dueFrom) {
+          filter.dueDate.$gte = new Date(req.query.dueFrom as string);
+        }
+        if (req.query.dueTo) {
+          filter.dueDate.$lte = new Date(req.query.dueTo as string);
+        }
+      }
+  
+      // Filter by assignedBy (for teachers/admins)
+      if (req.query.assignedBy) {
+        filter.assignedBy = req.query.assignedBy;
+      }
+  
+      // Search by quiz title or student name (using populate)
+      let searchFilter = {};
+      if (req.query.search) {
+        // For search, we need to use aggregation or separate queries
+        // Simplified: search by quiz title via populate
+        const quizzes = await Quiz.find({
+          title: { $regex: req.query.search as string, $options: 'i' },
+        }).select('_id');
+        if (quizzes.length > 0) {
+          filter.quiz = { $in: quizzes.map((q) => q._id) };
+        }
+      }
+  
+      // Sort options
+      const sortBy = (req.query.sortBy as string) || 'dueDate';
+      const sortOrder = (req.query.sortOrder as string) === 'asc' ? 1 : -1;
+      const sort: any = { [sortBy]: sortOrder };
+  
+      const assignments = await Assignment.find(filter)
+        .populate('quiz', 'title subject timeLimit')
+        .populate('assignedTo', 'name email')
+        .populate('assignedBy', 'name email')
+        .sort(sort)
+        .skip(skip)
+        .limit(limit);
+  
+      const total = await Assignment.countDocuments(filter);
+  
+      // Get available filters
+      const availableStatuses = ['pending', 'in_progress', 'completed', 'expired'];
+  
+      res.status(200).json({
+        assignments,
+        pagination: {
+          page,
+          limit,
+          total,
+          pages: Math.ceil(total / limit),
+        },
+        filters: {
+          statuses: availableStatuses,
+        },
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: 'Lỗi server', error: error.message });
     }
-
-    if (req.query.quizId) {
-      filter.quiz = req.query.quizId;
-    }
-
-    if (req.query.status) {
-      filter.status = req.query.status;
-    }
-
-    if (req.user?.role === 'student') {
-      filter.assignedTo = req.user.userId;
-    }
-
-    const assignments = await Assignment.find(filter)
-      .populate('quiz', 'title subject timeLimit')
-      .populate('assignedTo', 'name email')
-      .populate('assignedBy', 'name email')
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
-
-    const total = await Assignment.countDocuments(filter);
-
-    res.status(200).json({
-      assignments,
-      pagination: {
-        page,
-        limit,
-        total,
-        pages: Math.ceil(total / limit),
-      },
-    });
-  } catch (error: any) {
-    res.status(500).json({ message: 'Lỗi server', error: error.message });
-  }
-};
+  };
 
 export const getAssignmentById = async (req: AuthRequest, res: Response): Promise<void> => {
   try {

@@ -5,7 +5,7 @@ import Quiz from '../models/Quiz';
 import Question from '../models/Question';
 import { AuthRequest } from '../middleware/auth';
 
-export const getAllQuizzes = async (req: AuthRequest, res: Response): Promise<void> => {
+export const getAll = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
@@ -13,29 +13,72 @@ export const getAllQuizzes = async (req: AuthRequest, res: Response): Promise<vo
 
     const filter: any = {};
 
+    // Search by title, description, or subject
     if (req.query.search) {
       filter.$or = [
-        { title: { $regex: req.query.search, $options: 'i' } },
-        { description: { $regex: req.query.search, $options: 'i' } },
+        { title: { $regex: req.query.search as string, $options: 'i' } },
+        { description: { $regex: req.query.search as string, $options: 'i' } },
+        { subject: { $regex: req.query.search as string, $options: 'i' } },
       ];
     }
 
+    // Filter by subject (multiple)
     if (req.query.subject) {
-      filter.subject = req.query.subject;
+      const subjects = Array.isArray(req.query.subject)
+        ? req.query.subject
+        : [req.query.subject];
+      filter.subject = { $in: subjects };
     }
 
-    if (req.query.createdBy) {
-      filter.createdBy = req.query.createdBy;
+    // Filter by creator (for teachers - only see their own)
+    if (req.user?.role === 'teacher') {
+      filter.createdBy = req.user.userId;
     }
+
+    // Filter by time limit range
+    if (req.query.timeLimitMin || req.query.timeLimitMax) {
+      filter.timeLimit = {};
+      if (req.query.timeLimitMin) {
+        filter.timeLimit.$gte = parseInt(req.query.timeLimitMin as string);
+      }
+      if (req.query.timeLimitMax) {
+        filter.timeLimit.$lte = parseInt(req.query.timeLimitMax as string);
+      }
+    }
+
+    // Filter by number of questions
+    if (req.query.questionsMin || req.query.questionsMax) {
+      // This requires aggregation for counting questions array length
+      // Simplified: use $where or aggregation pipeline
+    }
+
+    // Date range filter
+    if (req.query.createdFrom || req.query.createdTo) {
+      filter.createdAt = {};
+      if (req.query.createdFrom) {
+        filter.createdAt.$gte = new Date(req.query.createdFrom as string);
+      }
+      if (req.query.createdTo) {
+        filter.createdAt.$lte = new Date(req.query.createdTo as string);
+      }
+    }
+
+    // Sort options
+    const sortBy = (req.query.sortBy as string) || 'createdAt';
+    const sortOrder = (req.query.sortOrder as string) === 'asc' ? 1 : -1;
+    const sort: any = { [sortBy]: sortOrder };
 
     const quizzes = await Quiz.find(filter)
       .populate('createdBy', 'name email')
-      .populate('questions', 'title questionText options correctAnswer')
-      .sort({ createdAt: -1 })
+      .populate('questions', 'title questionText')
+      .sort(sort)
       .skip(skip)
       .limit(limit);
 
     const total = await Quiz.countDocuments(filter);
+
+    // Get available filters
+    const availableSubjects = await Quiz.distinct('subject', filter.createdBy ? { createdBy: filter.createdBy } : {});
 
     res.status(200).json({
       quizzes,
@@ -44,6 +87,9 @@ export const getAllQuizzes = async (req: AuthRequest, res: Response): Promise<vo
         limit,
         total,
         pages: Math.ceil(total / limit),
+      },
+      filters: {
+        subjects: availableSubjects,
       },
     });
   } catch (error: any) {

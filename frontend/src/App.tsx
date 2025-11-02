@@ -85,5 +85,17 @@ export const authAPI = {
   login: (data: { email: string; password: string }) =>
     api.post('/auth/login', data),
 };
+import Quizzes from './pages/Quizzes';
+
+// ... (trong Routes)
+<Route
+  path="/quizzes"
+  element={
+    <ProtectedRoute>
+      <Quizzes />
+    </ProtectedRoute>
+  }
+/>
+
 
 export default api;

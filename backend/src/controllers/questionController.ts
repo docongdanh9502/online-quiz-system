@@ -2,7 +2,7 @@ import { Response } from 'express';
 import Question from '../models/Question';
 import { AuthRequest } from '../middleware/auth';
 
-export const getAllQuestions = async (req: AuthRequest, res: Response): Promise<void> => {
+export const getAll = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
@@ -10,32 +10,69 @@ export const getAllQuestions = async (req: AuthRequest, res: Response): Promise<
 
     const filter: any = {};
 
+    // Search by title or questionText (full-text search)
     if (req.query.search) {
       filter.$or = [
-        { title: { $regex: req.query.search, $options: 'i' } },
-        { questionText: { $regex: req.query.search, $options: 'i' } },
+        { title: { $regex: req.query.search as string, $options: 'i' } },
+        { questionText: { $regex: req.query.search as string, $options: 'i' } },
+        { subject: { $regex: req.query.search as string, $options: 'i' } },
       ];
     }
 
+    // Filter by subject (exact match hoặc multiple)
     if (req.query.subject) {
-      filter.subject = req.query.subject;
+      const subjects = Array.isArray(req.query.subject)
+        ? req.query.subject
+        : [req.query.subject];
+      filter.subject = { $in: subjects };
     }
 
+    // Filter by difficulty
     if (req.query.difficulty) {
-      filter.difficulty = req.query.difficulty;
+      const difficulties = Array.isArray(req.query.difficulty)
+        ? req.query.difficulty
+        : [req.query.difficulty];
+      filter.difficulty = { $in: difficulties };
     }
 
-    if (req.query.createdBy) {
-      filter.createdBy = req.query.createdBy;
+    // Filter by creator (for teachers - only see their own)
+    if (req.user?.role === 'teacher') {
+      filter.createdBy = req.user.userId;
     }
+
+    // Advanced filters
+    if (req.query.optionsCount) {
+      const optionsCount = parseInt(req.query.optionsCount as string);
+      filter['options'] = { $size: optionsCount };
+    }
+
+    // Date range filter
+    if (req.query.createdFrom || req.query.createdTo) {
+      filter.createdAt = {};
+      if (req.query.createdFrom) {
+        filter.createdAt.$gte = new Date(req.query.createdFrom as string);
+      }
+      if (req.query.createdTo) {
+        filter.createdAt.$lte = new Date(req.query.createdTo as string);
+      }
+    }
+
+    // Sort options
+    const sortBy = (req.query.sortBy as string) || 'createdAt';
+    const sortOrder = (req.query.sortOrder as string) === 'asc' ? 1 : -1;
+    const sort: any = { [sortBy]: sortOrder };
 
     const questions = await Question.find(filter)
       .populate('createdBy', 'name email')
-      .sort({ createdAt: -1 })
+      .sort(sort)
       .skip(skip)
       .limit(limit);
 
     const total = await Question.countDocuments(filter);
+
+    // Get available filters for frontend
+    const availableSubjects = await Question.distinct('subject', filter.createdBy ? { createdBy: filter.createdBy } : {});
+    const availableDifficulties = await Question.distinct('difficulty', filter.createdBy ? { createdBy: filter.createdBy } : {});
 
     res.status(200).json({
       questions,
@@ -44,6 +81,10 @@ export const getAllQuestions = async (req: AuthRequest, res: Response): Promise<
         limit,
         total,
         pages: Math.ceil(total / limit),
+      },
+      filters: {
+        subjects: availableSubjects,
+        difficulties: availableDifficulties,
       },
     });
   } catch (error: any) {

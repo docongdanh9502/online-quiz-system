@@ -1,3 +1,4 @@
+// src/pages/Quizzes.tsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -38,9 +39,11 @@ import {
   Search as SearchIcon,
   PlayArrow as PlayArrowIcon,
 } from '@mui/icons-material';
+import AssignmentIcon from '@mui/icons-material/Assignment';
 import { quizAPI, Quiz } from '../services/quizAPI';
 import Layout from '../components/Layout';
 import RoleGuard from '../components/RoleGuard';
+import AssignQuizDialog from '../components/AssignQuizDialog';
 
 const Quizzes: React.FC = () => {
   const navigate = useNavigate();
@@ -54,6 +57,10 @@ const Quizzes: React.FC = () => {
   const [filterSubject, setFilterSubject] = useState('');
   const [selectedQuiz, setSelectedQuiz] = useState<Quiz | null>(null);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
+
+  // State cho Assign
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+  const [selectedQuizForAssign, setSelectedQuizForAssign] = useState<{ id: string; title: string } | null>(null);
 
   const fetchQuizzes = async () => {
     setLoading(true);
@@ -79,6 +86,7 @@ const Quizzes: React.FC = () => {
 
   useEffect(() => {
     fetchQuizzes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, limit, search, filterSubject]);
 
   const handleDelete = async (id: string) => {
@@ -102,6 +110,11 @@ const Quizzes: React.FC = () => {
     } catch (err: any) {
       alert(err.response?.data?.message || 'Lỗi khi tải quiz');
     }
+  };
+
+  const handleAssign = (quiz: Quiz) => {
+    setSelectedQuizForAssign({ id: quiz._id, title: quiz.title });
+    setAssignDialogOpen(true);
   };
 
   const formatTime = (minutes: number) => {
@@ -235,6 +248,15 @@ const Quizzes: React.FC = () => {
                           >
                             <DeleteIcon />
                           </IconButton>
+                          {/* Nút Assign */}
+                          <IconButton
+                            size="small"
+                            onClick={() => handleAssign(quiz)}
+                            color="primary"
+                            title="Giao bài thi"
+                          >
+                            <AssignmentIcon />
+                          </IconButton>
                         </RoleGuard>
                       </TableCell>
                     </TableRow>
@@ -258,6 +280,7 @@ const Quizzes: React.FC = () => {
           />
         </Paper>
 
+        {/* Dialog xem chi tiết */}
         <Dialog
           open={viewDialogOpen}
           onClose={() => setViewDialogOpen(false)}
@@ -358,6 +381,20 @@ const Quizzes: React.FC = () => {
             </Button>
           </DialogActions>
         </Dialog>
+
+        {/* Dialog Assign Quiz */}
+        <AssignQuizDialog
+          open={assignDialogOpen}
+          onClose={() => {
+            setAssignDialogOpen(false);
+            setSelectedQuizForAssign(null);
+          }}
+          quizId={selectedQuizForAssign?.id || ''}
+          quizTitle={selectedQuizForAssign?.title || ''}
+          onSuccess={() => {
+            fetchQuizzes();
+          }}
+        />
       </Container>
     </Layout>
   );

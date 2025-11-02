@@ -7,64 +7,9 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Unauthorized from './pages/Unauthorized';
 import Profile from './pages/Profile';
+import Questions from './pages/Questions';
 
-const Dashboard = () => {
-  const { user } = require('./contexts/AuthContext').useAuth();
-  return (
-    <Layout>
-      <div>
-        <h1>Dashboard</h1>
-        <p>Xin chào, {user?.name}!</p>
-        <p>Email: {user?.email}</p>
-        <p>Role: {user?.role}</p>
-      </div>
-    </Layout>
-  );
-};
-
-const QuizzesPage = () => {
-  return (
-    <Layout>
-      <div>
-        <h1>Danh Sách Bài Thi</h1>
-        <p>Trang này sẽ hiển thị danh sách bài thi</p>
-      </div>
-    </Layout>
-  );
-};
-
-const QuestionsPage = () => {
-  return (
-    <Layout>
-      <div>
-        <h1>Quản Lý Câu Hỏi</h1>
-        <p>Trang này chỉ dành cho teacher và admin</p>
-      </div>
-    </Layout>
-  );
-};
-
-const ManageQuizzesPage = () => {
-  return (
-    <Layout>
-      <div>
-        <h1>Quản Lý Quiz</h1>
-        <p>Trang này chỉ dành cho teacher và admin</p>
-      </div>
-    </Layout>
-  );
-};
-
-const UsersPage = () => {
-  return (
-    <Layout>
-      <div>
-        <h1>Quản Lý Người Dùng</h1>
-        <p>Trang này chỉ dành cho admin</p>
-      </div>
-    </Layout>
-  );
-};
+// ... (giữ nguyên các components khác)
 
 const App: React.FC = () => {
   return (
@@ -83,47 +28,14 @@ const App: React.FC = () => {
             }
           />
           <Route
-            path="/quizzes"
-            element={
-              <ProtectedRoute>
-                <QuizzesPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
             path="/questions"
             element={
-              <ProtectedRoute allowedRoles={['teacher', 'admin']}>
-                <QuestionsPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/manage-quizzes"
-            element={
-              <ProtectedRoute allowedRoles={['teacher', 'admin']}>
-                <ManageQuizzesPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/users"
-            element={
-              <ProtectedRoute requiredRole="admin">
-                <UsersPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/profile"
-            element={
               <ProtectedRoute>
-                <Layout>
-                  <Profile />
-                </Layout>
+                <Questions />
               </ProtectedRoute>
             }
           />
+          {/* ... (giữ nguyên các routes khác) */}
           <Route path="/" element={<Navigate to="/dashboard" />} />
         </Routes>
       </Router>
@@ -132,3 +44,46 @@ const App: React.FC = () => {
 };
 
 export default App;
+
+File: frontend/src/services/api.ts (nếu chưa có error handling)
+
+import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
+
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+
+const api = axios.create({
+  baseURL: API_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
+export const authAPI = {
+  register: (data: { email: string; password: string; name: string; role?: string }) =>
+    api.post('/auth/register', data),
+  login: (data: { email: string; password: string }) =>
+    api.post('/auth/login', data),
+};
+
+export default api;

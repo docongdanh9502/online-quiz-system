@@ -157,5 +157,34 @@ const App: React.FC = () => {
     </AuthProvider>
   );
 };
+import { NotificationProvider } from './contexts/NotificationContext';
+import NotificationSettings from './pages/NotificationSettings';
+
+// Wrap app với NotificationProvider
+function App() {
+  return (
+    <AuthProvider>
+      <NotificationProvider>
+        <Router>
+          {/* Routes */}
+        </Router>
+      </NotificationProvider>
+    </AuthProvider>
+  );
+}
+
+// Thêm route
+<Route
+  path="/settings/notifications"
+  element={
+    <ProtectedRoute>
+      <Layout>
+        <NotificationSettings />
+      </Layout>
+    </ProtectedRoute>
+  }
+/>
+
+
 
 export default App;

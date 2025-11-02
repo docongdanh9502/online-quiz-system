@@ -127,3 +127,22 @@ import QuestionForm from './pages/QuestionForm';
   }
 />
 
+import QuizForm from './pages/QuizForm';
+
+// ... (trong Routes)
+<Route
+  path="/quizzes/create"
+  element={
+    <ProtectedRoute allowedRoles={['teacher', 'admin']}>
+      <QuizForm />
+    </ProtectedRoute>
+  }
+/>
+<Route
+  path="/quizzes/edit/:id"
+  element={
+    <ProtectedRoute allowedRoles={['teacher', 'admin']}>
+      <QuizForm />
+    </ProtectedRoute>
+  }
+/>

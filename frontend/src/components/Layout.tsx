@@ -198,4 +198,22 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   );
 };
 
+import NotificationBell from './NotificationBell';
+
+// Trong AppBar, thêm NotificationBell trước ProfileMenu
+<NotificationBell />
+
+
+import SettingsIcon from '@mui/icons-material/Settings';
+
+// Trong menu items
+<ListItem button onClick={() => navigate('/settings/notifications')}>
+  <ListItemIcon>
+    <SettingsIcon />
+  </ListItemIcon>
+  <ListItemText primary="Cài đặt thông báo" />
+</ListItem>
+
+
+
 export default Layout;

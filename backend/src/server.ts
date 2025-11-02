@@ -7,6 +7,7 @@ import teacherRoutes from './routes/teacherRoutes';
 import questionRoutes from './routes/questionRoutes';
 import quizRoutes from './routes/quizRoutes';
 import assignmentRoutes from './routes/assignmentRoutes';
+import quizResultRoutes from './routes/quizResultRoutes';
 
 dotenv.config();
 
@@ -24,6 +25,7 @@ app.use('/api/teacher', teacherRoutes);
 app.use('/api/questions', questionRoutes);
 app.use('/api/quizzes', quizRoutes);
 app.use('/api/assignments', assignmentRoutes);
+app.use('/api/quiz-results', quizResultRoutes);
 
 app.get('/', (req, res) => {
   res.json({ message: 'Online Quiz System API' });

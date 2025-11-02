@@ -87,3 +87,31 @@ export const authAPI = {
 };
 
 export default api;
+import QuestionForm from './pages/QuestionForm';
+
+// ... (trong Routes)
+<Route
+  path="/questions"
+  element={
+    <ProtectedRoute>
+      <Questions />
+    </ProtectedRoute>
+  }
+/>
+<Route
+  path="/questions/create"
+  element={
+    <ProtectedRoute allowedRoles={['teacher', 'admin']}>
+      <QuestionForm />
+    </ProtectedRoute>
+  }
+/>
+<Route
+  path="/questions/edit/:id"
+  element={
+    <ProtectedRoute allowedRoles={['teacher', 'admin']}>
+      <QuestionForm />
+    </ProtectedRoute>
+  }
+/>
+

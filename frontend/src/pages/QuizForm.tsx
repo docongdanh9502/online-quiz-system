@@ -461,5 +461,31 @@ const QuizForm: React.FC = () => {
     </Layout>
   );
 };
+import ImageUpload from '../components/ImageUpload';
+
+// Thêm state
+const [quizImage, setQuizImage] = useState<string>('');
+
+// Trong form, thêm ImageUpload component (sau description field)
+<ImageUpload
+  currentImage={quizImage}
+  onUploadSuccess={(imagePath) => {
+    setQuizImage(imagePath);
+    if (quiz) {
+      setFormData({ ...formData, image: imagePath });
+    }
+  }}
+  onDelete={() => {
+    setQuizImage('');
+    if (quiz) {
+      setFormData({ ...formData, image: '' });
+    }
+  }}
+  quizId={quiz?._id}
+  label="Upload ảnh đại diện cho quiz"
+  maxSizeMB={5}
+/>
+
+
 
 export default QuizForm;

@@ -73,5 +73,52 @@ const Profile: React.FC = () => {
     </Container>
   );
 };
+import AvatarUpload from '../components/AvatarUpload';
+import { useAuth } from '../contexts/AuthContext';
+
+const Profile: React.FC = () => {
+  const { user } = useAuth();
+
+  return (
+    <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
+      <Paper sx={{ p: 4 }}>
+        <Typography variant="h4" gutterBottom>
+          Hồ sơ của tôi
+        </Typography>
+
+        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 4 }}>
+          <AvatarUpload
+            currentAvatar={user?.avatar}
+            size={150}
+          />
+        </Box>
+
+        <Box sx={{ mb: 2 }}>
+          <Typography variant="body2" color="text.secondary">
+            Họ tên
+          </Typography>
+          <Typography variant="h6">{user?.name}</Typography>
+        </Box>
+
+        <Box sx={{ mb: 2 }}>
+          <Typography variant="body2" color="text.secondary">
+            Email
+          </Typography>
+          <Typography variant="h6">{user?.email}</Typography>
+        </Box>
+
+        <Box sx={{ mb: 2 }}>
+          <Typography variant="body2" color="text.secondary">
+            Vai trò
+          </Typography>
+          <Typography variant="h6">{user?.role}</Typography>
+        </Box>
+      </Paper>
+    </Container>
+  );
+};
+
+
+
 
 export default Profile;

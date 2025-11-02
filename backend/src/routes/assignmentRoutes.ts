@@ -1,21 +1,39 @@
-import express from 'express';
-import {
-  createAssignment,
-  getAllAssignments,
-  getAssignmentById,
-  updateAssignment,
-  deleteAssignment,
-  getAssignmentsByStudent,
-} from '../controllers/assignmentController';
-import { authenticate, isTeacher } from '../middleware/auth';
-
-const router = express.Router();
-
-router.post('/', authenticate, isTeacher, createAssignment);
-router.get('/', authenticate, getAllAssignments);
-router.get('/student/:studentId?', authenticate, getAssignmentsByStudent);
-router.get('/:id', authenticate, getAssignmentById);
-router.put('/:id', authenticate, isTeacher, updateAssignment);
-router.delete('/:id', authenticate, isTeacher, deleteAssignment);
-
-export default router;  
+/**
+ * @swagger
+ * /assignments:
+ *   post:
+ *     summary: Tạo assignment mới
+ *     tags: [Assignments]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - quizId
+ *               - assignedTo
+ *               - dueDate
+ *             properties:
+ *               quizId:
+ *                 type: string
+ *                 description: ID của quiz
+ *               assignedTo:
+ *                 type: string
+ *                 description: ID của học sinh
+ *               dueDate:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Hạn nộp bài
+ *     responses:
+ *       201:
+ *         description: Tạo assignment thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Assignment'
+ *       400:
+ *         description: Dữ liệu không hợp lệ
+ */

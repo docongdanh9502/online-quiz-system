@@ -378,6 +378,17 @@ function App() {
     </AuthProvider>
   );
 }
+import ErrorBoundary from './components/ErrorBoundary';
+
+function App() {
+  return (
+    <ErrorBoundary>
+      <AuthProvider>
+        {/* ... rest of app */}
+      </AuthProvider>
+    </ErrorBoundary>
+  );
+}
 
 export default App;
 

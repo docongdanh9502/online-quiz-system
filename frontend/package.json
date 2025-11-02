@@ -29,3 +29,12 @@
     "lint": "eslint src/**/*.{ts,tsx}"
   }
 }
+
+{
+  "scripts": {
+    "test": "react-scripts test",
+    "test:watch": "react-scripts test --watch",
+    "test:coverage": "react-scripts test --coverage",
+    "test:ci": "react-scripts test --ci --coverage --watchAll=false"
+  }
+}
